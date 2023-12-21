@@ -1,37 +1,44 @@
-import telebot.types
-from telebot import TeleBot
+import asyncio
+
+from aiogram import Bot, Dispatcher, types
+from aiogram.enums import ParseMode
+from aiogram.filters import Command, CommandStart
+from aiogram.types import Message
 
 import config as cfg
 import storage
 from title import GameTitle
 
 
-bot = TeleBot(cfg.token, parse_mode='HTML')
+dp = Dispatcher()
 
 
-@bot.message_handler(commands=['list'])
-def list_all_titles(message: telebot.types.Message):
+@dp.message(Command('list'))
+async def list_all_titles(message: Message):
     response = '\n'.join([title.title for title in storage.get_all()])
-    bot.send_message(message.chat.id, response)
+    await message.answer(response)
 
 
-@bot.message_handler(commands=['view'])
-def respond_with_title(message: telebot.types.Message):
+@dp.message(Command('view'))
+async def respond_with_title(message: Message):
     if message.text.strip() == '/view':
-        bot.send_message(message.chat.id, 'Specify a title you want to view.')
+        await message.answer('Specify a title you want to view.')
         return
-    title = message.text.removeprefix('/view').strip()
+    title = message.text.removeprefix('/view').lstrip()
     title_obj = storage.match_title(title)
     if title_obj is not None:
-        bot.send_photo(message.chat.id,
-                       title_obj.poster_id,
-                       f'<b>{title_obj.title}</b>\n'
-                       f'<b>Studio:</b> {title_obj.studio}\n'
-                       f'<b>Director:</b> {title_obj.director}\n'
-                       f'<b>Released:</b> {title_obj.release_year}\n')
+        await message.answer_photo(title_obj.poster_id,
+                                   f'<b>{title_obj.title}</b>\n'
+                                   f'<b>Studio:</b> {title_obj.studio}\n'
+                                   f'<b>Director:</b> {title_obj.director}\n'
+                                   f'<b>Released:</b> {title_obj.release_year}\n')
     else:
-        bot.send_message(message.chat.id,
-                         f"No match to {title} found.")
+        await message.answer(f"No match to {title} found.")
+
+
+async def main():
+    bot = Bot(cfg.token, parse_mode=ParseMode.HTML)
+    await dp.start_polling(bot)
 
 
 if __name__ == '__main__':
@@ -80,4 +87,4 @@ if __name__ == '__main__':
                                 'Hidetaka Miyazaki',
                                 2020,
                                 'AgACAgIAAxkBAAIBEWVvgHd5FM7ze1bZ-zaxbwHU3wABYgACstYxG-ucgEs7s3ak6ZqZkgEAAwIAA3kAAzME'))
-    bot.infinity_polling()
+    asyncio.run(main())
