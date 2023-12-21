@@ -13,6 +13,14 @@ from title import GameTitle
 dp = Dispatcher()
 
 
+@dp.message(CommandStart())
+async def say_hello(message: Message):
+    await message.answer("""Welcome to the <b>Gamerate</b> bot!
+Available commands:
+/list - discover all the game titles in the bot's library.
+/view <i>&lt;game-title&gt;</i> - get some general info on the game.""")
+
+
 @dp.message(Command('list'))
 async def list_all_titles(message: Message):
     response = '\n'.join([title.title for title in storage.get_all()])
