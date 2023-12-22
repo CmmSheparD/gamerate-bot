@@ -1,25 +1,80 @@
+from datetime import date
+from pymysql import connect
+
 from util import get_close_matches_icase
 from title import GameTitle
 
+from config import db_name, db_user, db_socket, db_password
 
-_storage = {}
+
+connection = connect(unix_socket=db_socket, database=db_name, user=db_user,
+                     password=db_password)
+
+
+def get_user_accounts(tg_id):
+    query = f'SELECT id, nickname FROM Users WHERE tg_id = {tg_id};'
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+        result = cursor.fetchall()
+    return result
+
+
+def add_user(tg_id, nickname=None):
+    query = f'INSERT INTO Users (tg_id) VALUES ({tg_id});' \
+        if nickname is None \
+        else \
+        f"INSERT INTO Users (tg_id, nickname) VALUES ({tg_id}, '{connection.escape_string(nickname)}');"
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+        connection.commit()
 
 
 def add_title(title: GameTitle):
-    _storage[title.title] = title
+    query = f'INSERT INTO GameTitles (title, studio, director, release_date, posterID)' \
+            f"VALUES (%s, %s, %s, %s, %s);"
+    with connection.cursor() as cursor:
+        cursor.execute(query, (title.title, title.studio, title.director, title.release_date.isoformat(), title.poster_id))
+        connection.commit()
 
 
-def get_title(title: str):
-    return _storage.get(title)
+def get_titles(*, title: str = None, studio: str = None, director: str = None,
+               prior_to: date = None, after: date = None):
+    filters = []
+    if title is not None:
+        filters.append(f"title LIKE '%{title}%'")
+    if studio is not None:
+        filters.append(f"studio = '{studio}'")
+    if director is not None:
+        filters.append(f"director = '{director}'")
+    if prior_to is not None:
+        filters.append(f"release_date <= '{prior_to}'")
+    if after is not None:
+        filters.append(f"release_date >= '{after}'")
+
+    filters = ' AND '.join(filters)
+    query = f'SELECT * FROM GameTitles WHERE {filters};'
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+        result = cursor.fetchall()
+    return _map_db_title_entries(result)
 
 
 def match_title(candidate: str):
-    title = _storage.get(candidate)
-    if title is None:
-        best_match = get_close_matches_icase(candidate, _storage.keys(), 1)
-        title = _storage[best_match[0]] if len(best_match) != 0 else None
-    return title
+    """Find a matching title."""
+    with connection.cursor() as cursor:
+        cursor.execute('SELECT title FROM GameTitles;')
+        titles = map(lambda entry: entry[0], cursor.fetchall())
+    best_match = get_close_matches_icase(candidate, titles, 1)
+#    return _storage[best_match[0]] if len(best_match) != 0 else None
+    return get_titles(title=best_match[0])
 
 
-def get_all():
-    return tuple(_storage.values())
+def get_all_titles():
+    with connection.cursor() as cursor:
+        cursor.execute('SELECT * FROM GameTitles;')
+        result = cursor.fetchall()
+    return _map_db_title_entries(result)
+
+
+def _map_db_title_entries(entries):
+    return tuple(map(lambda entry: GameTitle(*entry[1:]), entries))
