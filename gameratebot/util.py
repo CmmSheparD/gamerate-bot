@@ -9,6 +9,6 @@ def get_close_matches_icase(word: AnyStr,
     """Case-ignorant wrapper for difflib.get_close_matches."""
     word = word.lower()
     uniform_to_original_map = {s.lower(): s for s in possibilities}
-    return [uniform_to_original_map[low]
-            for low in
+    return [uniform_to_original_map[uniform_match]
+            for uniform_match in
             get_close_matches(word, uniform_to_original_map.keys(), n, cutoff)]
