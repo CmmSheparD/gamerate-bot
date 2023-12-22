@@ -1,5 +1,6 @@
 from datetime import date
 from pymysql import connect
+from pymysql.converters import escape_string
 
 from util import get_close_matches_icase
 from title import GameTitle
@@ -23,7 +24,7 @@ def add_user(tg_id, nickname=None):
     query = f'INSERT INTO Users (tg_id) VALUES ({tg_id});' \
         if nickname is None \
         else \
-        f"INSERT INTO Users (tg_id, nickname) VALUES ({tg_id}, '{connection.escape_string(nickname)}');"
+        f"INSERT INTO Users (tg_id, nickname) VALUES ({tg_id}, '{escape_string(nickname)}');"
     with connection.cursor() as cursor:
         cursor.execute(query)
         connection.commit()
@@ -41,11 +42,11 @@ def get_titles(*, title: str = None, studio: str = None, director: str = None,
                prior_to: date = None, after: date = None):
     filters = []
     if title is not None:
-        filters.append(f"title LIKE '%{title}%'")
+        filters.append(f"title LIKE '%{escape_string(title)}%'")
     if studio is not None:
-        filters.append(f"studio = '{studio}'")
+        filters.append(f"studio = '{escape_string(studio)}'")
     if director is not None:
-        filters.append(f"director = '{director}'")
+        filters.append(f"director = '{escape_string(director)}'")
     if prior_to is not None:
         filters.append(f"release_date <= '{prior_to}'")
     if after is not None:
