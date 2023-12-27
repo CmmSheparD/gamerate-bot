@@ -1,12 +1,17 @@
-import asyncio
+from typing import Union
 
+import asyncio
+from aiogram import F
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandStart
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
+
+from selection import process_selection_command, SelectionCallback
 
 import config as cfg
 import storage
+from title import GameTitle
 
 
 dp = Dispatcher()
@@ -30,27 +35,43 @@ async def list_all_titles(message: Message):
 
 
 @dp.message(Command('view'))
-async def respond_title_overview(message: Message):
-    if message.text.strip() == '/view':
-        await message.answer('Specify a title you want to view.')
-        return
-    title = message.text[5:].lstrip()
-    titles = storage.get_titles(title=title)
-    if len(titles) != 0:
-        for title_obj in titles:
-            await message.answer_photo(
-                title_obj.poster_id,
-                f'<b>{title_obj.title}</b>\n'
-                f'<b>Studio:</b> {title_obj.studio}\n'
-                f'<b>Director:</b> {title_obj.director}\n'
-                f'<b>Released:</b> {title_obj.release_date.strftime("%d %b %Y")}\n'
-            )
-    else:
-        await message.answer(f"No match to {title} found.")
+async def start_view_processing(message: Message):
+    title = await process_selection_command(message, 'view')
+    if title is not None:
+        await send_title_view(message, title)
+
+
+@dp.callback_query(SelectionCallback.filter(F.command == 'view'))
+async def capture_view_callback(callback: CallbackQuery,
+                                callback_data: SelectionCallback):
+    await send_title_view(callback.message, callback_data.db_id)
+    await callback.message.delete()
+    await callback.answer()
+
+
+async def send_title_view(message: Message, obj: Union[int, GameTitle]):
+    title = storage.get_title_by_id(obj) if isinstance(obj, int) else obj
+    await message.answer_photo(
+        title.poster_id,
+        f'<b>{title.title}</b>\n'
+        f'<b>Studio:</b> {title.studio}\n'
+        f'<b>Director:</b> {title.director}\n'
+        f'<b>Released:</b> {title.release_date.strftime("%d %b %Y")}\n'
+        f'<b>Average score: {title.average_score if title.average_score is not None else "-/-"}</b>'
+    )
+
+
+@dp.message(Command('rate'))
+async def rate_game_title(message: Message):
+    title = await process_selection_command(message, 'rate')
+    if title is not None:
+        pass
 
 
 async def main():
     bot = Bot(cfg.token, parse_mode=ParseMode.HTML)
+
+    await bot.delete_webhook(True)
     await dp.start_polling(bot)
 
 
