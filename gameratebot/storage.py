@@ -8,12 +8,14 @@ from title import GameTitle
 from config import db_name, db_user, db_socket, db_password
 
 
-connection = connect(unix_socket=db_socket, database=db_name, user=db_user,
-                     password=db_password)
+def _connect_to_db():
+    return connect(unix_socket=db_socket, database=db_name, user=db_user,
+                   password=db_password)
 
 
 def get_user_accounts(tg_id):
     query = f'SELECT id, nickname FROM Users WHERE tg_id = {tg_id};'
+    connection = _connect_to_db()
     with connection.cursor() as cursor:
         cursor.execute(query)
         result = cursor.fetchall()
@@ -24,17 +26,22 @@ def add_user(tg_id, nickname=None):
     query = f'INSERT INTO Users (tg_id) VALUES ({tg_id});' \
         if nickname is None \
         else \
-        f"INSERT INTO Users (tg_id, nickname) VALUES ({tg_id}, '{escape_string(nickname)}');"
+        f"INSERT INTO Users (tg_id, nickname) " \
+        f"VALUES ({tg_id}, '{escape_string(nickname)}');"
+    connection = _connect_to_db()
     with connection.cursor() as cursor:
         cursor.execute(query)
         connection.commit()
 
 
 def add_title(title: GameTitle):
-    query = f'INSERT INTO GameTitles (title, studio, director, release_date, posterID)' \
-            f"VALUES (%s, %s, %s, %s, %s);"
+    query = f'INSERT INTO GameTitles '\
+            '(title, studio, director, release_date, posterID) ' \
+            f'VALUES (%s, %s, %s, %s, %s);'
+    connection = _connect_to_db()
     with connection.cursor() as cursor:
-        cursor.execute(query, (title.title, title.studio, title.director, title.release_date.isoformat(), title.poster_id))
+        cursor.execute(query, (title.title, title.studio, title.director,
+                       title.release_date.isoformat(), title.poster_id))
         connection.commit()
 
 
@@ -54,6 +61,7 @@ def get_titles(*, title: str = None, studio: str = None, director: str = None,
 
     filters = ' AND '.join(filters)
     query = f'SELECT * FROM GameTitles WHERE {filters};'
+    connection = _connect_to_db()
     with connection.cursor() as cursor:
         cursor.execute(query)
         result = cursor.fetchall()
@@ -62,6 +70,7 @@ def get_titles(*, title: str = None, studio: str = None, director: str = None,
 
 def match_title(candidate: str):
     """Find a matching title."""
+    connection = _connect_to_db()
     with connection.cursor() as cursor:
         cursor.execute('SELECT title FROM GameTitles;')
         titles = map(lambda entry: entry[0], cursor.fetchall())
@@ -71,6 +80,7 @@ def match_title(candidate: str):
 
 
 def get_all_titles():
+    connection = _connect_to_db()
     with connection.cursor() as cursor:
         cursor.execute('SELECT * FROM GameTitles;')
         result = cursor.fetchall()
