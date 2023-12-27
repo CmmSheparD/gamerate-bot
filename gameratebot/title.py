@@ -5,7 +5,7 @@ from checks import ensure_not_blanc
 
 class GameTitle:
     def __init__(self, title: str, studio: str, director: str,
-                 release_date: int, poster_id: str):
+                 release_date: date, poster_id: str):
         self.title = ensure_not_blanc(title)
         self.studio = ensure_not_blanc(studio)
         self.director = ensure_not_blanc(director)
