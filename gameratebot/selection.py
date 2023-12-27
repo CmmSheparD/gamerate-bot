@@ -16,7 +16,10 @@ async def process_selection_command(message: Message, command: str):
         return
     title = message.text[len(command) + 1:].lstrip()
     if len(title) < 4:
-        await message.answer('Too short search value!\nThe query must be <b>at least 4</b> characters long.')
+        await message.answer(
+            'Too short search value!\n'
+            'The query must be <b>at least 4</b> characters long.'
+        )
         return
     titles = storage.get_titles(title=title)
     if len(titles) == 0:

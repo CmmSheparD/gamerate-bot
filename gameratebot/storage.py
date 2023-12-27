@@ -37,11 +37,21 @@ def add_user(tg_id, nickname=None):
 def add_title(title: GameTitle):
     query = f'INSERT INTO GameTitles ' \
             '(title, studio, director, release_date, posterID) ' \
-            f'VALUES (%s, %s, %s, %s, %s);'
+            'VALUES (%s, %s, %s, %s, %s);'
     connection = _connect_to_db()
     with connection.cursor() as cursor:
         cursor.execute(query, (title.title, title.studio, title.director,
                        title.release_date.isoformat(), title.poster_id))
+        connection.commit()
+
+
+def add_review(title: int, user: int, score: int):
+    query = f'INSERT INTO Reviews ' \
+            '(user, game, score) ' \
+            'VALUES (%s, %s, %s);'
+    connection = _connect_to_db()
+    with connection.cursor() as cursor:
+        cursor.execute(query, (user, title, score))
         connection.commit()
 
 
