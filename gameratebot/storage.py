@@ -35,7 +35,7 @@ def add_user(tg_id, nickname=None):
 
 
 def add_title(title: GameTitle):
-    query = f'INSERT INTO GameTitles '\
+    query = f'INSERT INTO GameTitles ' \
             '(title, studio, director, release_date, posterID) ' \
             f'VALUES (%s, %s, %s, %s, %s);'
     connection = _connect_to_db()
@@ -60,12 +60,42 @@ def get_titles(*, title: str = None, studio: str = None, director: str = None,
         filters.append(f"release_date >= '{after}'")
 
     filters = ' AND '.join(filters)
-    query = f'SELECT * FROM GameTitles WHERE {filters};'
+    query = 'SELECT ' \
+            'GameTitles.id, ' \
+            'title, ' \
+            'studio, ' \
+            'director, ' \
+            'release_date, '\
+            'posterID, ' \
+            'AVG(score) ' \
+            'FROM GameTitles left join Reviews ' \
+            'on GameTitles.id = Reviews.game ' \
+            f'WHERE {filters} ' \
+            'GROUP BY GameTitles.id;'
     connection = _connect_to_db()
     with connection.cursor() as cursor:
         cursor.execute(query)
         result = cursor.fetchall()
     return _map_db_title_entries(result)
+
+
+def get_title_by_id(db_id: int):
+    query = 'SELECT ' \
+            'GameTitles.id, ' \
+            'title, ' \
+            'studio, ' \
+            'director, ' \
+            'release_date, ' \
+            'posterID, ' \
+            'AVG(score) ' \
+            'FROM GameTitles left join Reviews ' \
+            'on GameTitles.id = Reviews.game ' \
+            f'WHERE GameTitles.id = {db_id};'
+    connection = _connect_to_db()
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+        result = cursor.fetchall()
+    return _map_db_title_entries(result)[0]
 
 
 def match_title(candidate: str):
@@ -88,4 +118,4 @@ def get_all_titles():
 
 
 def _map_db_title_entries(entries):
-    return tuple(map(lambda entry: GameTitle(*entry[1:]), entries))
+    return tuple(map(lambda entry: GameTitle(*entry[1:], entry[0]), entries))
