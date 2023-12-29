@@ -45,16 +45,6 @@ def add_title(title: GameTitle):
         connection.commit()
 
 
-def add_review(title: int, user: int, score: int):
-    query = f'INSERT INTO Reviews ' \
-            '(user, game, score) ' \
-            'VALUES (%s, %s, %s);'
-    connection = _connect_to_db()
-    with connection.cursor() as cursor:
-        cursor.execute(query, (user, title, score))
-        connection.commit()
-
-
 def get_titles(*, title: str = None, studio: str = None, director: str = None,
                prior_to: date = None, after: date = None):
     filters = []
@@ -129,3 +119,13 @@ def get_all_titles():
 
 def _map_db_title_entries(entries):
     return tuple(map(lambda entry: GameTitle(*entry[1:], entry[0]), entries))
+
+
+def add_review(title: int, user: int, score: int):
+    query = 'INSERT INTO Reviews ' \
+            '(user, game, score) ' \
+            'VALUES (%s, %s, %s);'
+    connection = _connect_to_db()
+    with connection.cursor() as cursor:
+        cursor.execute(query, (user, title, score))
+        connection.commit()
