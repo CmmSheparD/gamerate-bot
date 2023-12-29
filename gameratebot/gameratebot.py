@@ -28,7 +28,7 @@ async def register_and_greet(message: Message):
 Available commands:
 /list - discover all the game titles in the bot's library.
 /view <i>&lt;game-title&gt;</i> - get some general info on the game.
-/rate <u>&lt;game-title&gt;</i> - rate the game.""")
+/rate <i>&lt;game-title&gt;</i> - rate the game.""")
 
 
 @dp.message(Command('list'))
