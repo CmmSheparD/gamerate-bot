@@ -129,3 +129,43 @@ def add_review(title: int, user: int, score: int):
     with connection.cursor() as cursor:
         cursor.execute(query, (user, title, score))
         connection.commit()
+
+
+def get_reviews(*, title: int = None, user: int = None,
+                fetch_text: bool = False):
+    filters = []
+    if title is not None:
+        filters.append(f"game = {title}")
+    if user is not None:
+        filters.append(f"Users.tg_id = {user}")
+
+    filters = ' AND '.join(filters)
+    query = 'SELECT ' \
+            'Reviews.id, ' \
+            'user, ' \
+            'game, ' \
+            'score ' \
+            'FROM Reviews ' \
+            f'WHERE {filters};'
+    if fetch_text:
+        idx = query.find(' FROM')
+        query = query[:idx] + ', review' + query[idx:]
+    if user is not None:
+        idx = query.find(' WHERE')
+        query = query[:idx] + ' join Users on Users.id = Reviews.user' \
+            + query[idx:]
+    connection = _connect_to_db()
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+        result = cursor.fetchall()
+    return result
+
+
+def update_review(title: int, user: int, score: int):
+    query = 'UPDATE Reviews ' \
+            'SET score = %s ' \
+            'WHERE user = %s AND game = %s;'
+    connection = _connect_to_db()
+    with connection.cursor() as cursor:
+        cursor.execute(query, (score, user, title))
+        connection.commit()
